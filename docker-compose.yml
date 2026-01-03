@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  catalog-service:
+    build: .
+    container_name: tailore-catalog-service
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-tailore-super-secret-jwt-key-2026}
+      - JWT_EXPIRES_IN=24h
+      - DB_PATH=/app/data/catalog.db
+    volumes:
+      - catalog-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  catalog-data:
+    driver: local
