@@ -6,10 +6,10 @@ const options = {
     info: {
       title: 'Tailoré Catalog & Inventory API',
       version: '1.0.0',
-      description: 'API Documentation for Tailoré E-Commerce Catalog and Inventory Management System',
+      description: 'RESTful API untuk manajemen katalog produk dan inventori sistem rental fashion Tailoré. Service ini menyediakan endpoint untuk browsing produk (36 items), filtering, authentication, dan stock management dengan role-based access control.',
       contact: {
-        name: 'Tailoré Team',
-        email: 'support@tailore.com'
+        name: 'Fhatika',
+        email: 'fhatika@tailore.com'
       },
       license: {
         name: 'MIT',
@@ -18,7 +18,15 @@ const options = {
     },
     servers: [
       {
-        url: 'http://localhost:3000',
+        url: 'https://ooga.queenifyofficial.site',
+        description: 'Production server'
+      },
+      {
+        url: 'http://192.168.0.154:3001',
+        description: 'Local network server'
+      },
+      {
+        url: 'http://localhost:3001',
         description: 'Development server'
       }
     ],
