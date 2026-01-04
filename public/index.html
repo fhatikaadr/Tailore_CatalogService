@@ -977,17 +977,11 @@
 
             products.forEach(product => {
                 const stockStatus = getStockStatus(product.available_quantity);
-                const imageUrl = product.image_url || 'https://via.placeholder.com/300x400?text=No+Image';
-                
                 const card = document.createElement('div');
                 card.className = 'product-card';
                 card.innerHTML = `
-                    <div class="product-image">
-                        <img src="${imageUrl}" alt="${product.name}" 
-                             onerror="this.src='https://via.placeholder.com/300x400?text=No+Image'">
-                        ${stockStatus.badge}
-                    </div>
                     <div class="product-info">
+                        ${stockStatus.badge}
                         <div class="product-brand">${product.brand || 'UNKNOWN'}</div>
                         <div class="product-name">${product.name}</div>
                         <div class="product-meta">
