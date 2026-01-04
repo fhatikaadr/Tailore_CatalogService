@@ -1,6 +1,6 @@
 # Tailoré API Test Script
 
-$baseUrl = "http://localhost:3000"
+$baseUrl = "http://localhost:3001"
 
 Write-Host "=================================" -ForegroundColor Cyan
 Write-Host "Tailoré API Testing" -ForegroundColor Cyan

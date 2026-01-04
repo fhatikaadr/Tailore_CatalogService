@@ -825,8 +825,8 @@
     </footer>
 
     <script>
-        // CONFIG
-        const API_BASE = 'http://localhost:3000/api';
+        // CONFIG - Uses relative path to work with any host (localhost, IP, or domain)
+        const API_BASE = window.location.origin + '/api';
         let currentPage = 1;
         let currentFilters = {};
         let authToken = localStorage.getItem('token') || null;
