@@ -1245,7 +1245,7 @@
             tbody.innerHTML = '<tr><td colspan="7" class="loading">LOADING INVENTORY</td></tr>';
 
             try {
-                const response = await fetch(`${API_BASE}/inventory/stock?limit=50`, {
+                const response = await fetch(`${API_BASE}/inventory/stock?limit=100`, {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
 
@@ -1298,7 +1298,7 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    document.getElementById('statTotal').textContent = data.summary.outOfStockCount + data.summary.lowStockCount;
+                    document.getElementById('statTotal').textContent = data.summary.totalProducts || 0;
                     document.getElementById('statLowStock').textContent = data.summary.lowStockCount;
                     document.getElementById('statOutOfStock').textContent = data.summary.outOfStockCount;
                 }
@@ -1337,8 +1337,13 @@
             const quantity = parseInt(document.getElementById('adjustQty').value);
             const reason = document.getElementById('adjustReason').value;
 
-            if (quantity === 0) {
-                showAlert('QUANTITY CANNOT BE ZERO', 'error');
+            console.log('=== STOCK ADJUST DEBUG ===');
+            console.log('Product ID:', productId);
+            console.log('Quantity:', quantity);
+            console.log('Reason:', reason);
+
+            if (quantity === 0 || isNaN(quantity)) {
+                showAlert('QUANTITY CANNOT BE ZERO OR INVALID', 'error');
                 return;
             }
 
@@ -1348,27 +1353,38 @@
             }
 
             try {
+                const requestBody = { quantity, reason };
+                console.log('Sending request:', requestBody);
+                console.log('URL:', `${API_BASE}/inventory/stock/${productId}/adjust`);
+                console.log('Token:', authToken ? 'Present' : 'Missing');
+
                 const response = await fetch(`${API_BASE}/inventory/stock/${productId}/adjust`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${authToken}`,
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ quantity, reason })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
+                console.log('Response:', data);
+                console.log('Response status:', response.status);
 
                 if (response.ok) {
-                    showAlert('STOCK ADJUSTED SUCCESSFULLY', 'success');
+                    showAlert(`STOCK ADJUSTED! ${quantity > 0 ? '+' : ''}${quantity} units`, 'success');
                     closeModal('stockModal');
-                    loadInventory();
-                    loadStats();
+                    // Reload dengan delay kecil agar backend sempat update
+                    setTimeout(() => {
+                        loadInventory();
+                        loadStats();
+                    }, 500);
                 } else {
                     showAlert(data.message || 'ADJUSTMENT FAILED', 'error');
                 }
             } catch (error) {
-                showAlert('SERVER ERROR', 'error');
+                console.error('Stock adjust error:', error);
+                showAlert('SERVER ERROR: ' + error.message, 'error');
             }
         }
 

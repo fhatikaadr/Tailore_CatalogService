@@ -132,6 +132,27 @@ const seedDatabase = async () => {
         .on('error', reject);
     });
 
+    // LIMIT TO ONLY 36 PRODUCTS (3 pages × 12 per page)
+    products.splice(36);
+
+    // DELETE ALL OLD DATA FIRST
+    console.log('\n🗑️  Deleting old data...');
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM stock_history', (err) => {
+        if (err) console.error('Error deleting stock_history:', err.message);
+      });
+      db.run('DELETE FROM inventory', (err) => {
+        if (err) console.error('Error deleting inventory:', err.message);
+      });
+      db.run('DELETE FROM products', (err) => {
+        if (err) reject(err);
+        else {
+          console.log('✓ Old data deleted');
+          resolve();
+        }
+      });
+    });
+
     // Insert products
     console.log('\n📦 Inserting products into database...');
     let insertedCount = 0;

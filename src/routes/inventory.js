@@ -55,7 +55,7 @@ const router = express.Router();
 router.get('/stock', authenticate, (req, res) => {
   const {
     page = 1,
-    limit = 50,
+    limit = 100,
     lowStock = false,
     outOfStock = false
   } = req.query;
@@ -82,13 +82,8 @@ router.get('/stock', authenticate, (req, res) => {
 
   const params = [];
 
-  if (lowStock === 'true') {
-    query += ` AND i.available_quantity > 0 AND i.available_quantity <= 10`;
-  }
-
-  if (outOfStock === 'true') {
-    query += ` AND i.available_quantity = 0`;
-  }
+  // REMOVED FILTERS - Show all products regardless of stock status
+  // This prevents products from disappearing after stock updates
 
   // Get total count
   const countQuery = query.replace(/SELECT.*FROM/, 'SELECT COUNT(*) as total FROM');
@@ -690,6 +685,11 @@ router.get('/history/:productId', authenticate, (req, res) => {
  */
 router.get('/alerts', authenticate, authorize('admin'), (req, res) => {
   const queries = {
+    totalProducts: `
+      SELECT COUNT(*) as count
+      FROM inventory i
+      JOIN products p ON i.product_id = p.id
+    `,
     outOfStock: `
       SELECT p.id, p.name, p.brand, p.category, i.quantity, i.available_quantity
       FROM inventory i
@@ -723,6 +723,7 @@ router.get('/alerts', authenticate, authorize('admin'), (req, res) => {
           success: true,
           data: results,
           summary: {
+            totalProducts: results.totalProducts && results.totalProducts[0] ? results.totalProducts[0].count : 0,
             outOfStockCount: results.outOfStock.length,
             lowStockCount: results.lowStock.length
           }

@@ -260,8 +260,8 @@ router.get('/products', (req, res) => {
       console.log('📊 COUNT RESULT:', countResult);
       
       const total = countResult.total;
-      const maxPages = 10; // Limit to 10 pages
-      const maxProducts = maxPages * parseInt(limit); // 10 pages * 12 = 120 products
+      const maxPages = 3; // Limit to 3 pages
+      const maxProducts = maxPages * parseInt(limit); // 3 pages * 12 = 36 products
       const limitedTotal = Math.min(total, maxProducts);
       const calculatedTotalPages = Math.min(Math.ceil(limitedTotal / limit), maxPages);
       
