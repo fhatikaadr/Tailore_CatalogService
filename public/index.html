@@ -474,6 +474,76 @@
             background: var(--pink-neon);
         }
 
+        /* QUANTITY SELECTOR */
+        .quantity-selector {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 0 auto 1.5rem;
+            width: fit-content;
+        }
+
+        .quantity-selector button {
+            background: var(--hitam);
+            color: var(--putih);
+            border: none;
+            width: 50px;
+            height: 50px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .quantity-selector button:hover {
+            background: var(--pink-neon);
+            transform: scale(1.1);
+        }
+
+        .quantity-selector button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quantity-selector input {
+            width: 80px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 800;
+            border: 3px solid var(--hitam);
+            padding: 0.5rem;
+            background: var(--putih);
+        }
+
+        .btn-checkout {
+            width: 100%;
+            padding: 1.5rem;
+            background: var(--pink-neon);
+            color: var(--putih);
+            border: 3px solid var(--hitam);
+            font-size: 1.2rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 6px 6px 0 var(--hitam);
+        }
+
+        .btn-checkout:hover {
+            background: var(--pink-dark);
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0 var(--hitam);
+        }
+
+        .btn-checkout:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         /* LOADING */
         .loading {
             text-align: center;
@@ -607,8 +677,8 @@
         
         <!-- TABS -->
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('catalog')">CATALOG</button>
-            <button class="tab" onclick="switchTab('inventory')" id="inventoryTab">INVENTORY</button>
+            <button class="tab active" onclick="switchTab('catalog')" id="catalogTabBtn">CATALOG</button>
+            <button class="tab" onclick="switchTab('inventory')" id="inventoryTabBtn" style="display: none;">INVENTORY</button>
         </div>
 
         <!-- ALERT AREA -->
@@ -665,7 +735,7 @@
         </div>
 
         <!-- INVENTORY TAB (Admin Only) -->
-        <div id="inventoryTab" class="tab-content hidden">
+        <div id="inventoryContent" class="tab-content hidden">
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Total Products</div>
@@ -797,13 +867,13 @@
                 document.getElementById('authBtn').onclick = logout;
                 
                 if (userData.role === 'admin') {
-                    document.getElementById('inventoryTab').classList.remove('hidden');
+                    document.getElementById('inventoryTabBtn').style.display = 'block';
                 }
             } else {
                 document.getElementById('userInfo').textContent = 'GUEST';
                 document.getElementById('authBtn').textContent = 'LOGIN';
                 document.getElementById('authBtn').onclick = showLoginModal;
-                document.getElementById('inventoryTab').classList.add('hidden');
+                document.getElementById('inventoryTabBtn').style.display = 'none';
             }
         }
 
@@ -872,14 +942,14 @@
             // Show/hide content
             if (tabName === 'catalog') {
                 document.getElementById('catalogTab').classList.remove('hidden');
-                document.getElementById('inventoryTab').classList.add('hidden');
+                document.getElementById('inventoryContent').classList.add('hidden');
             } else if (tabName === 'inventory') {
                 if (!authToken || userData?.role !== 'admin') {
                     showAlert('ADMIN ACCESS REQUIRED', 'error');
                     return;
                 }
                 document.getElementById('catalogTab').classList.add('hidden');
-                document.getElementById('inventoryTab').classList.remove('hidden');
+                document.getElementById('inventoryContent').classList.remove('hidden');
                 loadInventory();
                 loadStats();
             }
@@ -1137,6 +1207,25 @@
                                     <strong>AVAILABLE STOCK: ${product.available_quantity || 0}</strong>
                                     ${product.reserved_quantity > 0 ? `<br><small>(${product.reserved_quantity} RESERVED)</small>` : ''}
                                 </div>
+
+                                ${product.available_quantity > 0 ? `
+                                    <div style="background: var(--pink-soft); padding: 1.5rem; border: 3px solid var(--hitam); box-shadow: 6px 6px 0 var(--hitam);">
+                                        <label style="display: block; text-align: center; margin-bottom: 1rem; font-weight: 800; font-size: 1.1rem;">QUANTITY</label>
+                                        <div class="quantity-selector">
+                                            <button onclick="decreaseQuantity()" type="button">-</button>
+                                            <input type="number" id="productQuantity" value="1" min="1" max="${product.available_quantity}" readonly>
+                                            <button onclick="increaseQuantity(${product.available_quantity})" type="button">+</button>
+                                        </div>
+                                        <button class="btn-checkout" onclick="proceedToCheckout(${product.id}, '${product.name.replace(/'/g, "\\'")}', ${product.retail_price})">
+                                            ADD TO CART & CHECKOUT
+                                        </button>
+                                    </div>
+                                ` : `
+                                    <div style="background: #ffebee; padding: 1.5rem; border: 3px solid var(--hitam); text-align: center;">
+                                        <strong style="color: #c62828; font-size: 1.1rem;">OUT OF STOCK</strong>
+                                        <p style="margin-top: 0.5rem; font-size: 0.9rem;">This product is currently unavailable.</p>
+                                    </div>
+                                `}
                             </div>
                         </div>
                     `;
@@ -1161,33 +1250,39 @@
                 });
 
                 const data = await response.json();
+                console.log('Inventory response:', data);
 
-                if (data.success && data.data.length > 0) {
-                    tbody.innerHTML = '';
-                    data.data.forEach(item => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td><strong>${item.name}</strong></td>
-                            <td>${item.brand || 'N/A'}</td>
-                            <td>${item.size || 'N/A'}</td>
-                            <td><strong>${item.quantity}</strong></td>
-                            <td style="color: ${item.available_quantity === 0 ? 'var(--pink-neon)' : '#00aa00'};">
-                                <strong>${item.available_quantity}</strong>
-                            </td>
-                            <td>${item.reserved_quantity}</td>
-                            <td>
-                                <button onclick="showStockAdjust('${item.id}', '${item.name}', ${item.quantity})" 
-                                        style="width: auto; padding: 0.5rem 1rem; font-size: 0.75rem;">
-                                    ADJUST
-                                </button>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                    });
+                if (data.success) {
+                    if (data.data && data.data.length > 0) {
+                        tbody.innerHTML = '';
+                        data.data.forEach(item => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td><strong>${item.name}</strong></td>
+                                <td>${item.brand || 'N/A'}</td>
+                                <td>${item.size || 'N/A'}</td>
+                                <td><strong>${item.quantity}</strong></td>
+                                <td style="color: ${item.available_quantity === 0 ? 'var(--pink-neon)' : '#00aa00'};">
+                                    <strong>${item.available_quantity}</strong>
+                                </td>
+                                <td>${item.reserved_quantity}</td>
+                                <td>
+                                    <button onclick="showStockAdjust('${item.id}', '${item.name.replace(/'/g, "\\'")}', ${item.quantity})" 
+                                            style="width: auto; padding: 0.5rem 1rem; font-size: 0.75rem;">
+                                        ADJUST
+                                    </button>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    } else {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">NO INVENTORY DATA FOUND</td></tr>';
+                    }
                 } else {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">NO DATA</td></tr>';
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--pink-neon);">${data.message || 'FAILED TO LOAD'}</td></tr>`;
                 }
             } catch (error) {
+                console.error('Inventory error:', error);
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--pink-neon);">ERROR LOADING DATA</td></tr>';
             }
         }
@@ -1292,6 +1387,128 @@
             setTimeout(() => {
                 alert.remove();
             }, 3000);
+        }
+
+        // QUANTITY SELECTOR FUNCTIONS
+        function increaseQuantity(maxQuantity) {
+            const input = document.getElementById('productQuantity');
+            const currentValue = parseInt(input.value);
+            if (currentValue < maxQuantity) {
+                input.value = currentValue + 1;
+            }
+        }
+
+        function decreaseQuantity() {
+            const input = document.getElementById('productQuantity');
+            const currentValue = parseInt(input.value);
+            if (currentValue > 1) {
+                input.value = currentValue - 1;
+            }
+        }
+
+        // CHECKOUT FUNCTION
+        function proceedToCheckout(productId, productName, price) {
+            const quantity = parseInt(document.getElementById('productQuantity').value);
+            const totalPrice = price * quantity;
+
+            // Store cart data in localStorage
+            const cartItem = {
+                productId,
+                productName,
+                price,
+                quantity,
+                totalPrice,
+                timestamp: new Date().toISOString()
+            };
+
+            // Get existing cart or create new one
+            let cart = JSON.parse(localStorage.getItem('tailore_cart') || '[]');
+            
+            // Check if item already exists in cart
+            const existingItemIndex = cart.findIndex(item => item.productId === productId);
+            
+            if (existingItemIndex > -1) {
+                // Update quantity
+                cart[existingItemIndex].quantity += quantity;
+                cart[existingItemIndex].totalPrice = cart[existingItemIndex].price * cart[existingItemIndex].quantity;
+            } else {
+                // Add new item
+                cart.push(cartItem);
+            }
+
+            // Save to localStorage
+            localStorage.setItem('tailore_cart', JSON.stringify(cart));
+
+            // Show success message
+            showAlert(`${quantity}x ${productName} ADDED TO CART!`, 'success');
+
+            // Close modal
+            closeModal('productModal');
+
+            // Show cart summary
+            showCartSummary(cart);
+        }
+
+        // CART SUMMARY
+        function showCartSummary(cart) {
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const totalPrice = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+
+            let cartHTML = '<div style="position: fixed; bottom: 2rem; right: 2rem; background: var(--hitam); color: var(--putih); padding: 1.5rem; border: 3px solid var(--pink-neon); box-shadow: 8px 8px 0 var(--pink-neon); min-width: 300px; z-index: 9999;">';
+            cartHTML += '<h4 style="margin-bottom: 1rem; font-size: 1.2rem;">🛒 SHOPPING CART</h4>';
+            
+            cart.forEach(item => {
+                cartHTML += `<div style="margin-bottom: 0.5rem; font-size: 0.9rem;">
+                    ${item.quantity}x ${item.productName}<br>
+                    <strong>USD ${formatNumber(item.totalPrice)}</strong>
+                </div>`;
+            });
+
+            cartHTML += `<hr style="border: 1px solid var(--pink-neon); margin: 1rem 0;">`;
+            cartHTML += `<div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 1rem;">TOTAL: USD ${formatNumber(totalPrice)}</div>`;
+            cartHTML += `<button onclick="finalizeCheckout()" style="width: 100%; padding: 1rem; background: var(--pink-neon); color: var(--putih); border: none; font-weight: 800; cursor: pointer; margin-bottom: 0.5rem;">PROCEED TO PAYMENT</button>`;
+            cartHTML += `<button onclick="closeCartSummary()" style="width: 100%; padding: 0.5rem; background: transparent; color: var(--putih); border: 1px solid var(--putih); font-weight: 600; cursor: pointer;">CONTINUE SHOPPING</button>`;
+            cartHTML += '</div>';
+
+            // Remove existing cart summary if any
+            const existingSummary = document.getElementById('cartSummaryFloat');
+            if (existingSummary) existingSummary.remove();
+
+            // Add new cart summary
+            const cartDiv = document.createElement('div');
+            cartDiv.id = 'cartSummaryFloat';
+            cartDiv.innerHTML = cartHTML;
+            document.body.appendChild(cartDiv);
+        }
+
+        function closeCartSummary() {
+            const cartSummary = document.getElementById('cartSummaryFloat');
+            if (cartSummary) cartSummary.remove();
+        }
+
+        function finalizeCheckout() {
+            const cart = JSON.parse(localStorage.getItem('tailore_cart') || '[]');
+            
+            if (cart.length === 0) {
+                showAlert('CART IS EMPTY', 'error');
+                return;
+            }
+
+            const totalPrice = cart.reduce((sum, item) => sum + item.totalPrice, 0);
+            
+            // Here you would integrate with payment gateway
+            // For now, we'll show a confirmation
+            const confirmed = confirm(`Total Payment: USD ${formatNumber(totalPrice)}\n\nProceed to payment?`);
+            
+            if (confirmed) {
+                // Clear cart
+                localStorage.removeItem('tailore_cart');
+                closeCartSummary();
+                showAlert('ORDER PLACED SUCCESSFULLY! 🎉', 'success');
+                
+                // In real implementation, redirect to payment page or process payment
+                console.log('Order details:', cart);
+            }
         }
 
         // Search on Enter

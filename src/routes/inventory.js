@@ -5,9 +5,52 @@ const { authenticate, authorize } = require('../middleware/auth');
 const router = express.Router();
 
 /**
- * @route   GET /api/inventory/stock
- * @desc    Get inventory status for all products
- * @access  Private
+ * @swagger
+ * /api/inventory/stock:
+ *   get:
+ *     summary: Get inventory status for all products
+ *     tags: [Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *       - in: query
+ *         name: lowStock
+ *         schema:
+ *           type: boolean
+ *         description: Filter low stock items (≤10)
+ *       - in: query
+ *         name: outOfStock
+ *         schema:
+ *           type: boolean
+ *         description: Filter out of stock items
+ *     responses:
+ *       200:
+ *         description: Inventory retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Inventory'
+ *                 pagination:
+ *                   type: object
+ *       401:
+ *         description: Unauthorized - JWT token required
  */
 router.get('/stock', authenticate, (req, res) => {
   const {
@@ -74,6 +117,12 @@ router.get('/stock', authenticate, (req, res) => {
         });
       }
 
+      console.log('📦 Inventory query result:', {
+        count: inventory.length,
+        total,
+        sample: inventory.length > 0 ? inventory[0].name : 'empty'
+      });
+
       res.json({
         success: true,
         data: inventory,
@@ -89,9 +138,36 @@ router.get('/stock', authenticate, (req, res) => {
 });
 
 /**
- * @route   GET /api/inventory/stock/:productId
- * @desc    Get inventory for a specific product
- * @access  Private
+ * @swagger
+ * /api/inventory/stock/{productId}:
+ *   get:
+ *     summary: Get inventory for specific product
+ *     tags: [Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Inventory retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Inventory'
+ *       404:
+ *         description: Inventory not found
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/stock/:productId', authenticate, (req, res) => {
   const { productId } = req.params;
@@ -131,9 +207,44 @@ router.get('/stock/:productId', authenticate, (req, res) => {
 });
 
 /**
- * @route   POST /api/inventory/stock/:productId/adjust
- * @desc    Adjust stock quantity (Admin only)
- * @access  Private (Admin)
+ * @swagger
+ * /api/inventory/stock/{productId}/adjust:
+ *   post:
+ *     summary: Adjust stock quantity (Admin only)
+ *     tags: [Inventory]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: productId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - quantity
+ *             properties:
+ *               quantity:
+ *                 type: integer
+ *                 example: 50
+ *                 description: Quantity to add (positive) or remove (negative)
+ *               reason:
+ *                 type: string
+ *                 example: Manual adjustment
+ *     responses:
+ *       200:
+ *         description: Stock adjusted successfully
+ *       400:
+ *         description: Invalid quantity
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Admin access required
  */
 router.post('/stock/:productId/adjust', authenticate, authorize('admin'), (req, res) => {
   const { productId } = req.params;

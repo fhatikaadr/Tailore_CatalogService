@@ -1,15 +1,19 @@
 const db = require('./src/config/database');
 
-db.all('SELECT id, name, image_url FROM products LIMIT 5', (err, rows) => {
-  if (err) {
-    console.error('Error:', err);
-  } else {
-    console.log('Sample products with images:');
-    rows.forEach(row => {
-      console.log(`\nID: ${row.id}`);
-      console.log(`Name: ${row.name}`);
-      console.log(`Image URL: ${row.image_url}`);
-    });
+// Check products
+db.get('SELECT COUNT(*) as count FROM products', (err, row) => {
+  if (err) console.error('Products error:', err);
+  else console.log('Products count:', row.count);
+});
+
+// Check inventory
+db.get('SELECT COUNT(*) as count FROM inventory', (err, row) => {
+  if (err) console.error('Inventory error:', err);
+  else console.log('Inventory count:', row.count);
+  
+  if (row && row.count === 0) {
+    console.log('\n⚠️  Inventory is empty! Running seed...');
   }
-  process.exit(0);
+  
+  setTimeout(() => process.exit(0), 1000);
 });

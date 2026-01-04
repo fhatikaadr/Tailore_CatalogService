@@ -3,6 +3,8 @@ const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger');
 require('dotenv').config();
 
 // Import routes
@@ -40,7 +42,38 @@ app.use((req, res, next) => {
   next();
 });
 
-// Health check endpoint
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  customCss: '.swagger-ui .topbar { display: none }',
+  customSiteTitle: 'Tailoré API Documentation'
+}));
+
+/**
+ * @swagger
+ * /:
+ *   get:
+ *     summary: API Information
+ *     description: Get basic information about the API
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: API information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 version:
+ *                   type: string
+ *                 status:
+ *                   type: string
+ *                 endpoints:
+ *                   type: object
+ */
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -50,11 +83,34 @@ app.get('/', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       catalog: '/api/catalog',
-      inventory: '/api/inventory'
+      inventory: '/api/inventory',
+      documentation: '/api-docs'
     }
   });
 });
 
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health Check
+ *     description: Check if the API is running
+ *     tags: [System]
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 status:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ */
 app.get('/health', (req, res) => {
   res.json({
     success: true,

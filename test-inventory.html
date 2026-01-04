@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Inventory</title>
+</head>
+<body>
+    <h1>Test Inventory API</h1>
+    <button onclick="testInventory()">Test Inventory</button>
+    <pre id="result"></pre>
+
+    <script>
+        async function testInventory() {
+            const token = localStorage.getItem('token');
+            document.getElementById('result').textContent = 'Loading...';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/inventory/stock?limit=5', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
