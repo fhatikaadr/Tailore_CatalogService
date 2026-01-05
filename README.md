@@ -53,7 +53,7 @@ docker build -t fhatikaadr/tailore-catalog:latest .
 docker run -d -p 3001:3001 --name toko-tika --restart always fhatikaadr/tailore-catalog:latest
 ```
 
-Access at: **http://192.168.0.154:3001/** or **https://ooga.queenifyofficial.site/**
+Access at: **https://ooga.queenifyofficial.site/**
 
 ## 🔑 Default Credentials
 
